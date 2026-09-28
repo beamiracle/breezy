@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🌤️ Breezy Weather</title>
+<style>
+:root{
+  --sky1:#aee1ff; --sky2:#ffd9ec; --card:#ffffffcc; --ink:#2b2140; --sub:#6b5c86;
+  --accent:#ff8fb1; --accent2:#7cd6ff; --pill:#ffffffaa;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; font-family:'Segoe UI',system-ui,sans-serif; color:var(--ink);
+  background:linear-gradient(180deg,var(--sky1),var(--sky2)); overflow-x:hidden; transition:background 1s;
+}
+body.night{
+  background:linear-gradient(180deg,#1b1440,#4a2e63); color:#f2ecff;
+  --card:#241c46dd; --ink:#f6f2ff; --sub:#c7b8f2; --pill:#ffffff26; --accent2:#8fd8ff;
+}
+body.rain{ background:linear-gradient(180deg,#7f97b0,#c9d6e3); }
+body.night.rain{ background:linear-gradient(180deg,#141327,#2c2e4a); }
+
+#sky{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+.sun{position:absolute;top:8%;right:12%;width:80px;height:80px;border-radius:50%;
+  background:radial-gradient(circle,#fff6b0,#ffd15c);box-shadow:0 0 60px 20px #ffd15c88;
+  animation:pulse 4s ease-in-out infinite;}
+.moon{position:absolute;top:8%;right:14%;width:60px;height:60px;border-radius:50%;
+  background:#fdfbe8;box-shadow:0 0 40px 12px #fdfbe866, inset -14px -4px 0 0 #e6e2c9;}
+@keyframes pulse{50%{transform:scale(1.08)}}
+.cloud{position:absolute;opacity:.9;animation:drift linear infinite;}
+.cloud svg{width:110px;filter:drop-shadow(0 4px 6px #0002);}
+@keyframes drift{from{transform:translateX(-140px)}to{transform:translateX(110vw)}}
+.drop{position:absolute;top:-20px;width:2px;height:16px;background:#bcdcff;border-radius:2px;
+  animation:fall linear infinite;opacity:.75;}
+@keyframes fall{to{transform:translateY(110vh)}}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2.4s ease-in-out infinite;}
+@keyframes twinkle{50%{opacity:.2}}
+
+.wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:18px 16px 40px;}
+h1{font-size:20px;text-align:center;margin:4px 0 14px;letter-spacing:.5px;}
+.searchWrap{position:relative;margin-bottom:14px;display:flex;gap:8px;}
+#citySearch{flex:1;padding:12px 16px;border-radius:999px;border:none;
+  background:var(--pill);font-size:15px;font-weight:600;color:var(--ink);outline:none;}
+#citySearch::placeholder{color:var(--sub);font-weight:500;}
+body.night #citySearch{color:#f2ecff;}
+#goBtn{border:none;background:var(--accent);color:#fff;font-weight:700;padding:0 18px;
+  border-radius:999px;cursor:pointer;font-size:15px;}
+.suggest{position:absolute;top:calc(100% + 6px);left:0;right:58px;background:var(--card);
+  border-radius:16px;overflow:hidden;box-shadow:0 8px 24px #0002;z-index:5;backdrop-filter:blur(6px);}
+.suggest button{display:block;width:100%;text-align:left;padding:10px 16px;border:none;
+  background:none;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;}
+.suggest button:hover{background:#0000000d;}
+body.night .suggest button{color:#f2ecff;}
+
+.card{background:var(--card);border-radius:24px;padding:20px;margin-bottom:16px;
+  box-shadow:0 8px 30px #0001;backdrop-filter:blur(6px);}
+.msg{text-align:center;color:var(--sub);font-weight:600;padding:20px 0;}
+body.night .msg{color:#d8caff;}
+.current{text-align:center;}
+.emoji-big{font-size:64px;display:block;animation:bob 3s ease-in-out infinite;}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.temp{font-size:52px;font-weight:700;margin:2px 0;}
+.desc{color:var(--sub);font-weight:600;}
+body.night .desc{color:#d8caff;}
+.hilo{margin-top:6px;font-size:14px;color:var(--sub);}
+body.night .hilo{color:#d8caff;}
+.unit{margin-top:10px;}
+.unit button{border:none;background:var(--pill);padding:6px 12px;border-radius:999px;
+  font-weight:700;cursor:pointer;color:var(--ink);}
+.unit button.on{background:var(--accent2);color:#fff;}
+
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--sub);margin:0 0 10px;}
+body.night .section-title{color:#c9b8ff;}
+.hourly{display:flex;gap:14px;overflow-x:auto;padding-bottom:4px;}
+.hcol{flex:0 0 auto;text-align:center;font-size:13px;min-width:44px;}
+.hcol .hemo{font-size:22px;display:block;margin:4px 0;}
+.hcol .ht{font-weight:700;}
+
+.daily-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;
+  border-top:1px solid #0001;}
+body.night .daily-row{border-color:#fff2;}
+.daily-row .dow{width:44px;font-weight:700;}
+.daily-row .demo{font-size:20px;width:28px;text-align:center;}
+.daily-row .pop{width:44px;color:var(--accent2);font-size:12px;font-weight:700;}
+.daily-row .bar{flex:1;height:6px;border-radius:3px;background:#0001;position:relative;}
+body.night .daily-row .bar{background:#fff2;}
+.daily-row .bar span{position:absolute;top:0;bottom:0;border-radius:3px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));}
+.daily-row .range{width:80px;text-align:right;font-weight:600;}
+footer{text-align:center;font-size:11px;color:var(--sub);margin-top:6px;}
+body.night footer{color:#c9b8ff;}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div class="wrap">
+  <h1>🌤️ Breezy</h1>
+  <div class="searchWrap">
+    <input id="citySearch" type="text" placeholder="Type a city…" autocomplete="off">
+    <button id="goBtn">Go</button>
+    <div class="suggest" id="suggest" style="display:none;"></div>
+  </div>
+  <div id="content"><div class="card"><div class="msg">Loading Denpasar… 📍</div></div></div>
+  <footer>Live data from Open-Meteo · hourly + 7-day forecast</footer>
+</div>
+<script>
+/* ============================================================
+   WHERE THE API IS USED (no key needed — Open-Meteo is free/open):
+   1) GEOCODE_URL turns a typed city name into lat/lon
+   2) FORECAST_URL turns lat/lon into current + hourly + daily data
+   Both are called live, right in the browser, when the user searches.
+   ============================================================ */
+const GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search";
+const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+
+const WMO = { // WMO weather_code -> [emoji, label, animClass]
+  0:["☀️","Clear sky","clear"], 1:["🌤️","Mainly clear","clear"], 2:["⛅","Partly cloudy","partly_cloudy"],
+  3:["☁️","Overcast","cloudy"], 45:["🌫️","Fog","fog"], 48:["🌫️","Fog","fog"],
+  51:["🌦️","Light drizzle","drizzle"], 53:["🌦️","Drizzle","drizzle"], 55:["🌧️","Dense drizzle","drizzle"],
+  61:["🌧️","Light rain","rain"], 63:["🌧️","Rain","rain"], 65:["🌧️","Heavy rain","rain"],
+  71:["🌨️","Light snow","snow"], 73:["🌨️","Snow","snow"], 75:["❄️","Heavy snow","snow"],
+  80:["🌦️","Rain showers","rain"], 81:["🌧️","Rain showers","rain"], 82:["⛈️","Violent showers","thunderstorm"],
+  95:["⛈️","Thunderstorm","thunderstorm"], 96:["⛈️","Thunderstorm + hail","thunderstorm"], 99:["⛈️","Severe storm","thunderstorm"]
+};
+const NIGHT_OVERRIDE = {"☀️":"🌙","🌤️":"🌙","⛅":"☁️"};
+function wmoLook(code,isDay){
+  const [emo,label,cls] = WMO[code]||["🌡️","Unknown","clear"];
+  return {emoji: isDay? emo : (NIGHT_OVERRIDE[emo]||emo), label, cls};
+}
+
+let unit='C', cityData=null;
+const f2c = c => c; // Open-Meteo already gives Celsius by default
+const fmt = t => Math.round(unit==='C'? t : (t*9/5+32));
+
+async function geocode(name){
+  const url = `${GEOCODE_URL}?name=${encodeURIComponent(name)}&count=5&language=en&format=json`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("geocode failed");
+  const data = await res.json();
+  return data.results || [];
+}
+
+async function getForecast(lat, lon){
+  const params = new URLSearchParams({
+    latitude: lat, longitude: lon,
+    current: "temperature_2m,weather_code,is_day",
+    hourly: "temperature_2m,weather_code",
+    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    forecast_days: 8, timezone: "auto"
+  });
+  const res = await fetch(`${FORECAST_URL}?${params}`);
+  if(!res.ok) throw new Error("forecast failed");
+  return res.json();
+}
+
+function buildSky(cls,isDay){
+  const sky=document.getElementById('sky'); sky.innerHTML='';
+  document.body.className = (isDay?'':'night') + (['rain','drizzle','thunderstorm'].includes(cls)?' rain':'');
+  if(isDay && (cls==='clear'||cls==='partly_cloudy')){
+    const s=document.createElement('div'); s.className='sun'; sky.appendChild(s);
+  }
+  if(!isDay){
+    const m=document.createElement('div'); m.className='moon'; sky.appendChild(m);
+    for(let i=0;i<40;i++){
+      const st=document.createElement('div'); st.className='star';
+      const sz=Math.random()*2+1;
+      st.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*55}%;left:${Math.random()*100}%;animation-delay:${Math.random()*2}s`;
+      sky.appendChild(st);
+    }
+  }
+  const cloudCount = cls==='cloudy'?5:(cls==='partly_cloudy'?3:(isDay&&cls==='clear'?1:3));
+  for(let i=0;i<cloudCount;i++){
+    const c=document.createElement('div'); c.className='cloud';
+    c.style.cssText=`top:${8+Math.random()*30}%;animation-duration:${28+Math.random()*20}s;animation-delay:${-Math.random()*30}s`;
+    c.innerHTML=`<svg viewBox="0 0 100 60"><ellipse cx="30" cy="40" rx="30" ry="18" fill="#fff"/><ellipse cx="60" cy="30" rx="26" ry="22" fill="#fff"/><ellipse cx="80" cy="42" rx="22" ry="15" fill="#fff"/></svg>`;
+    sky.appendChild(c);
+  }
+  if(['rain','drizzle','thunderstorm'].includes(cls)){
+    for(let i=0;i<36;i++){
+      const dr=document.createElement('div'); dr.className='drop';
+      dr.style.cssText=`left:${Math.random()*100}%;animation-duration:${.6+Math.random()*.6}s;animation-delay:${Math.random()*2}s`;
+      sky.appendChild(dr);
+    }
+  }
+}
+
+function render(){
+  const c = cityData;
+  const cur = wmoLook(c.current.weather_code, c.current.is_day===1);
+  buildSky(cur.cls, c.current.is_day===1);
+
+  const nowIdx = c.hourly.time.findIndex(t=>t===c.current.time) ;
+  const startIdx = nowIdx>=0? nowIdx : 0;
+  const hrs = [];
+  for(let i=startIdx;i<startIdx+24 && i<c.hourly.time.length;i++){
+    const d=new Date(c.hourly.time[i]);
+    const isDay = d.getHours()>=6 && d.getHours()<18;
+    const look = wmoLook(c.hourly.weather_code[i], isDay);
+    hrs.push({label: i===startIdx?'Now':d.toLocaleTimeString([], {hour:'numeric'}), t:c.hourly.temperature_2m[i], emoji:look.emoji});
+  }
+
+  const maxH = Math.max(...c.daily.temperature_2m_max), minL = Math.min(...c.daily.temperature_2m_min);
+  const dailyRows = c.daily.time.map((dt,i)=>{
+    const d=new Date(dt);
+    const look = wmoLook(c.daily.weather_code[i], true);
+    const left = ((c.daily.temperature_2m_min[i]-minL)/(maxH-minL))*100;
+    const width = ((c.daily.temperature_2m_max[i]-c.daily.temperature_2m_min[i])/(maxH-minL))*100;
+    return `<div class="daily-row">
+      <div class="dow">${i===0?'Today':d.toLocaleDateString([], {weekday:'short'})}</div>
+      <div class="demo">${look.emoji}</div>
+      <div class="pop">${c.daily.precipitation_probability_max[i]}%</div>
+      <div class="bar"><span style="left:${left}%;width:${width}%"></span></div>
+      <div class="range">${fmt(c.daily.temperature_2m_min[i])}°–${fmt(c.daily.temperature_2m_max[i])}°</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div class="card current">
+      <span class="emoji-big">${cur.emoji}</span>
+      <div class="temp">${fmt(c.current.temperature_2m)}°<span>${unit}</span></div>
+      <div class="desc">${c.name}${c.country?', '+c.country:''} · ${cur.label}</div>
+      <div class="hilo">H:${fmt(c.daily.temperature_2m_max[0])}° L:${fmt(c.daily.temperature_2m_min[0])}°</div>
+      <div class="unit">
+        <button id="uC" class="${unit==='C'?'on':''}">°C</button>
+        <button id="uF" class="${unit==='F'?'on':''}">°F</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Next 24 hours</div>
+      <div class="hourly">${hrs.map(h=>`<div class="hcol"><div>${h.label}</div><span class="hemo">${h.emoji}</span><div class="ht">${fmt(h.t)}°</div></div>`).join('')}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">8-Day Forecast</div>
+      ${dailyRows}
+    </div>`;
+
+  document.getElementById('uC').onclick=()=>{unit='C';render();};
+  document.getElementById('uF').onclick=()=>{unit='F';render();};
+}
+
+async function searchAndLoad(name){
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="card"><div class="msg">Finding ${name}… 🔎</div></div>`;
+  try{
+    const results = await geocode(name);
+    if(!results.length){
+      content.innerHTML = `<div class="card"><div class="msg">Couldn't find "${name}" 🌱 try a different spelling</div></div>`;
+      return;
+    }
+    const place = results[0];
+    const fc = await getForecast(place.latitude, place.longitude);
+    cityData = {
+      name: place.name, country: place.country,
+      current: fc.current, hourly: fc.hourly, daily: fc.daily
+    };
+    render();
+  }catch(err){
+    content.innerHTML = `<div class="card"><div class="msg">Something went wrong fetching weather 🌧️<br>${err.message}</div></div>`;
+  }
+}
+
+const searchEl=document.getElementById('citySearch'), suggestEl=document.getElementById('suggest'), goBtn=document.getElementById('goBtn');
+let debounceTimer;
+searchEl.addEventListener('input',()=>{
+  clearTimeout(debounceTimer);
+  const q=searchEl.value.trim();
+  if(q.length<2){ suggestEl.style.display='none'; return; }
+  debounceTimer=setTimeout(async ()=>{
+    try{
+      const results = await geocode(q);
+      if(!results.length){ suggestEl.style.display='none'; return; }
+      suggestEl.style.display='block';
+      suggestEl.innerHTML = results.map(r=>
+        `<button data-lat="${r.latitude}" data-lon="${r.longitude}" data-name="${r.name}" data-country="${r.country||''}">
+          ${r.name}${r.admin1?', '+r.admin1:''}${r.country?', '+r.country:''}</button>`).join('');
+    }catch(e){ suggestEl.style.display='none'; }
+  }, 350);
+});
+suggestEl.addEventListener('click', async e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  suggestEl.style.display='none'; searchEl.value='';
+  const content=document.getElementById('content');
+  content.innerHTML = `<div class="card"><div class="msg">Loading ${b.dataset.name}… 🔎</div></div>`;
+  try{
+    const fc = await getForecast(b.dataset.lat, b.dataset.lon);
+    cityData = { name:b.dataset.name, country:b.dataset.country, current:fc.current, hourly:fc.hourly, daily:fc.daily };
+    render();
+  }catch(err){
+    content.innerHTML = `<div class="card"><div class="msg">Something went wrong fetching weather 🌧️</div></div>`;
+  }
+});
+goBtn.addEventListener('click',()=>{ if(searchEl.value.trim()) searchAndLoad(searchEl.value.trim()); });
+searchEl.addEventListener('keydown',e=>{ if(e.key==='Enter' && searchEl.value.trim()) searchAndLoad(searchEl.value.trim()); });
+document.addEventListener('click',e=>{ if(!e.target.closest('.searchWrap')) suggestEl.style.display='none'; });
+
+function loadInitialCity(){
+  searchAndLoad("Denpasar");
+}
+loadInitialCity();
+</script>
+</body>
+</html>
